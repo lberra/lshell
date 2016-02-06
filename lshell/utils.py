@@ -20,6 +20,9 @@
 
 import re
 import subprocess
+import sys
+import platform
+import os
 
 try:
     from os import urandom
@@ -36,6 +39,7 @@ except:
         _urandomfd.close()
         return bytes
 
+ld_preload = ''
 
 def get_aliases(line, aliases):
     """ Replace all configured aliases in the line
@@ -69,10 +73,42 @@ def get_aliases(line, aliases):
         line = line.replace('%s%s' %(char, char), '%s' %char)
     return line
 
+def get_noexec(noexec=''):
+  """ Get the sudo noexec file path, if available. This will allow us to prevent
+      applications from executing random commands thus escaping the shell
+  """
+
+  if sys.platform.startswith('freebsd'):
+    noexec = '/usr/local/libexec/sudo_noexec.so'
+  elif sys.platform.startswith('netbsd'):
+    noexec = '/usr/pkg/libexec/sudo_noexec.so'
+  elif sys.platform.startswith('linux'):
+    if platform.linux_distribution(full_distribution_name=0)[0] in ('centos',
+                                                                    'redhat'):
+      noexec = '/usr/libexec/sudo_noexec.so'
+
+    elif platform.linux_distribution(full_distribution_name=0)[0] in ('fedora'):
+      noexec = '/usr/libexec/sudo/sudo_noexec.so'
+    elif platform.linux_distribution(full_distribution_name=0)[0] in ('debian',
+                                                                      'ubuntu',
+                                                                      'SuSE'):
+      noexec = '/usr/lib/sudo/sudo_noexec.so'
+
+  if os.path.isfile(noexec):
+    return 'LD_PRELOAD=%s' % noexec
+  else:
+    return 'LD_PRELOAD='
+
 def exec_cmd(cmd):
   """ execute a command, locally catching the signals """
+
+  # set LD_PRELOAD= if not already set (do it only once)
+  global ld_preload
+  if not ld_preload:
+    ld_preload = get_noexec()
+
   try:
-    retcode = subprocess.call("%s" % cmd, shell=True)
+    retcode = subprocess.call("%s %s" % (ld_preload, cmd), shell=True)
   except KeyboardInterrupt:
     # exit code for user terminated scripts is 130
     retcode = 130

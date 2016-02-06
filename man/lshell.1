@@ -125,7 +125,13 @@ command aliases list (similar to bash's alias directive)
 .TP
 .I allowed
 a list of the allowed commands or set to 'all' to allow all commands in user's \
-PATH
+PATH.
+
+if sudo(8) is installed and sudo_noexec.so is available, it will be loaded
+before running every command, preventing it from running further commands
+itself. Otherwise, beware of commands like vim/find/more/etc. that will allow
+users to execute code (e.g. /bin/sh) from within the application, thus easily
+escaping lshell
 .TP
 .I allowed_cmd_path
 a list of path; all executable files inside these path will be allowed

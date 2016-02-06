@@ -3,7 +3,7 @@ import unittest
 import lshell
 from lshell.shellcmd import ShellCmd, LshellTimeOut
 from lshell.checkconfig import CheckConfig
-from lshell.utils import get_aliases
+from lshell.utils import get_aliases, get_noexec
 import os
 
 TOPDIR="%s/../" % os.path.dirname(os.path.realpath(__file__))
@@ -119,6 +119,13 @@ class TestFunctions(unittest.TestCase):
     userconf['sudo_commands'].sort()
     allowed.sort()
     return self.assertEqual(allowed, userconf['sudo_commands'])
+
+  def test_noexec_ld_preload(self):
+    """ LD_PRELOAD should not be empty when tested on known machines """
+    args = self.args
+    userconf = CheckConfig(args).returnconf()
+    ld_preload = get_noexec()
+    return self.assertIn('LD_PRELOAD=/usr',ld_preload)
 
 if __name__ == "__main__":
     unittest.main()
